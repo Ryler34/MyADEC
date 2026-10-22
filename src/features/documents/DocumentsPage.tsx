@@ -5,6 +5,7 @@ import { documentCategories } from '@/data/documentsData';
 import { DocumentPreviewModal } from './components/DocumentPreviewModal';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { getDocumentFile } from '@/services/documentFileService';
+import { AdecInlineLoader } from '@/components/brand/AdecLoader';
 
 const fileTypeStyles: Record<InternalDocument['fileType'], string> = {
   pdf: 'bg-rose-50 text-rose-600',
@@ -21,6 +22,7 @@ export const DocumentsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Tous');
   const [previewDocument, setPreviewDocument] = useState<InternalDocument | null>(null);
   const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const workspace = useWorkspace();
 
   const filteredDocuments = useMemo(() => {
@@ -39,6 +41,7 @@ export const DocumentsPage: React.FC = () => {
   }, [searchQuery, selectedCategory, workspace.documents]);
 
   const handleDownload = async (document: InternalDocument) => {
+    setDownloadingId(document.id);
     try {
       if (document.downloadUrl.startsWith('workspace-file://')) {
         const fileId = document.downloadUrl.slice('workspace-file://'.length);
@@ -59,6 +62,8 @@ export const DocumentsPage: React.FC = () => {
       }
     } catch (caught) {
       setDownloadNotice(caught instanceof Error ? caught.message : 'Impossible de récupérer ce fichier.');
+    } finally {
+      setDownloadingId(null);
     }
     window.setTimeout(() => setDownloadNotice(null), 4000);
   };
@@ -140,8 +145,8 @@ export const DocumentsPage: React.FC = () => {
                 <button type="button" onClick={() => setPreviewDocument(document)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-200">
                   <Search className="h-3.5 w-3.5" /> Consulter
                 </button>
-                <button type="button" onClick={() => handleDownload(document)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700">
-                  <ArrowDownToLine className="h-3.5 w-3.5" /> Télécharger
+                <button type="button" disabled={downloadingId === document.id} onClick={() => handleDownload(document)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-80">
+                  {downloadingId === document.id ? <AdecInlineLoader message="Chargement…" className="text-white" /> : <><ArrowDownToLine className="h-3.5 w-3.5" /> Télécharger</>}
                 </button>
               </div>
             </article>

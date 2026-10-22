@@ -10,7 +10,7 @@ interface SplashScreenProps {
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
   onFinish,
-  minDuration = 1300,
+  minDuration = 1650,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -62,7 +62,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 ease: 'easeInOut',
               }}
             >
-              <AdecLogo size="lg" variant="card" className="rounded-2xl shadow-xl px-6 py-3.5" />
+              <AdecLogo size="xl" variant="card" className="rounded-3xl shadow-2xl px-9 py-5" />
             </motion.div>
 
             {/* Titre et Sous-titre avec apparition progressive */}

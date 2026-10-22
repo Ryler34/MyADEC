@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2, ArrowRight, X } from 'lucide-react';
 import { AdecLogo } from '@/components/brand/AdecLogo';
+import { AdecInlineLoader } from '@/components/brand/AdecLoader';
 import { useAuth } from './AuthContext';
 import { brandConfig } from '@/config/brand';
 
@@ -127,8 +128,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
               transition={{ delay: 0.1, duration: 0.4 }}
               className="inline-block"
             >
-              <div className="bg-white rounded-2xl sm:rounded-3xl px-7 py-3 sm:px-8 sm:py-3.5 shadow-md inline-flex items-center justify-center min-w-[170px] min-h-[64px]">
-                <AdecLogo size="md" imgClassName="h-12 sm:h-14" />
+              <div className="bg-white rounded-2xl sm:rounded-3xl px-7 py-4 sm:px-9 sm:py-5 shadow-md inline-flex items-center justify-center min-w-[205px] sm:min-w-[230px] min-h-[82px] sm:min-h-[96px]">
+                <AdecLogo size="lg" imgClassName="h-16 sm:h-20 max-w-[280px]" />
               </div>
             </motion.div>
 
@@ -261,15 +262,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
                   className="w-full h-12 bg-[#EA580C] hover:bg-[#D95304] active:scale-[0.99] text-white font-semibold text-base rounded-xl shadow-sm transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-75 disabled:pointer-events-none"
                 >
                   {isLoading ? (
-                    <div className="flex items-center gap-2.5">
-                      {/* Animation subtile avec Logo */}
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                      />
-                      <span>Connexion en cours...</span>
-                    </div>
+                    <AdecInlineLoader message="Connexion…" className="text-white" />
                   ) : (
                     <span>Se connecter</span>
                   )}
@@ -412,7 +405,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
                       disabled={isResetting}
                       className="flex-1 h-11 rounded-xl bg-[#139BD7] text-white text-xs sm:text-sm font-semibold hover:bg-[#0B72A2] flex items-center justify-center gap-2"
                     >
-                      {isResetting ? 'Envoi...' : 'Envoyer le lien'}
+                      {isResetting ? <AdecInlineLoader message="Envoi…" /> : 'Envoyer le lien'}
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>

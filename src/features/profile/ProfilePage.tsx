@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Mail, Save, Trash2, UserRound } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
+import { AdecInlineLoader } from '@/components/brand/AdecLoader';
 
 const resizeImage = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const objectUrl = URL.createObjectURL(file);
@@ -35,14 +36,18 @@ export const ProfilePage: React.FC = () => {
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
 
   const handlePhoto = async (file?: File) => {
     if (!file) return;
     setError('');
+    setIsPhotoLoading(true);
     try {
       setPhotoURL(await resizeImage(file));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Impossible de charger cette photo.');
+    } finally {
+      setIsPhotoLoading(false);
     }
   };
 
@@ -70,8 +75,9 @@ export const ProfilePage: React.FC = () => {
           <div className="relative">
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-sky-100 text-3xl font-extrabold text-sky-700 shadow-md">
               {photoURL ? <img src={photoURL} alt="Photo de profil" className="h-full w-full object-cover" /> : displayName.charAt(0).toUpperCase() || <UserRound className="h-9 w-9" />}
+              {isPhotoLoading && <span className="absolute inset-0 flex items-center justify-center bg-slate-900/55"><AdecInlineLoader message="Préparation…" className="flex-col text-[9px] text-white" /></span>}
             </div>
-            <button type="button" onClick={() => fileInput.current?.click()} className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#139BD7] text-white shadow hover:bg-sky-700" aria-label="Choisir une photo"><Camera className="h-4 w-4" /></button>
+            <button type="button" disabled={isPhotoLoading} onClick={() => fileInput.current?.click()} className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#139BD7] text-white shadow hover:bg-sky-700 disabled:cursor-wait disabled:opacity-70" aria-label="Choisir une photo"><Camera className="h-4 w-4" /></button>
             <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={(event) => handlePhoto(event.target.files?.[0])} />
           </div>
           <div className="text-center sm:text-left">

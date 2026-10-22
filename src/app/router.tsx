@@ -13,6 +13,7 @@ import { AdminPage } from '@/features/admin/AdminPage';
 import { VideosPage } from '@/features/videos/VideosPage';
 import { MessagesPage } from '@/features/messages/MessagesPage';
 import { useAuth } from '@/features/auth/AuthContext';
+import { AdecLoader } from '@/components/brand/AdecLoader';
 
 /**
  * Route protégée : Redirige vers /login si non authentifié
@@ -21,7 +22,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return null; // Le SplashScreen ou loader gère cette attente
+    return <AdecLoader message="Vérification de votre session…" />;
   }
 
   if (!isAuthenticated) {
@@ -38,7 +39,7 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return null;
+    return <AdecLoader message="Préparation de votre espace…" />;
   }
 
   if (isAuthenticated) {
@@ -50,7 +51,7 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <AdecLoader message="Vérification des droits d’accès…" />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return user?.role === 'Administrateur' ? <>{children}</> : <Navigate to="/" replace />;
 };

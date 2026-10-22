@@ -7,6 +7,7 @@ import { publishNotification, removeAccount, removeAnnouncement, removeDocument,
 import { deleteDocumentFile, saveDocumentFile } from '@/services/documentFileService';
 import { documentCategories } from '@/data/documentsData';
 import type { InternalDocument } from '@/types';
+import { AdecInlineLoader } from '@/components/brand/AdecLoader';
 
 type AdminTab = 'Comptes' | 'Publications' | 'Documents' | 'Agenda' | 'Notifications';
 const tabs: AdminTab[] = ['Comptes', 'Publications', 'Documents', 'Agenda', 'Notifications'];
@@ -28,6 +29,7 @@ export const AdminPage: React.FC = () => {
   const [videoForm, setVideoForm] = useState({ title: '', description: '', url: '', thumbnailUrl: '' });
   const [documentForm, setDocumentForm] = useState({ title: '', category: documentCategories[0] as InternalDocument['category'], fileType: 'pdf' as InternalDocument['fileType'], fileSize: '', issuer: '', description: '' });
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [isSavingDocument, setIsSavingDocument] = useState(false);
   const [eventForm, setEventForm] = useState({ title: '', description: '', date: '2026-10-30', startTime: '09:00', endTime: '10:00', type: 'direction' as 'direction' | 'formation' | 'celebration' | 'seminaire', typeLabel: 'Direction', location: 'Siège ADEC', organizer: 'Direction Générale', isVirtual: false });
 
   const activeAccounts = useMemo(() => workspace.accounts.filter((account) => account.status === 'active').length, [workspace.accounts]);
@@ -85,6 +87,7 @@ export const AdminPage: React.FC = () => {
       setError('Sélectionnez le fichier à publier.');
       return;
     }
+    setIsSavingDocument(true);
     try {
       const fileSize = documentForm.fileSize || (documentFile.size >= 1024 * 1024
         ? `${(documentFile.size / (1024 * 1024)).toFixed(1).replace('.', ',')} Mo`
@@ -99,7 +102,8 @@ export const AdminPage: React.FC = () => {
       success('Le document et son fichier sont publiés dans l’espace Documents.');
     } catch (caught) {
       fail(caught);
-      return;
+    } finally {
+      setIsSavingDocument(false);
     }
   };
 
@@ -197,7 +201,7 @@ export const AdminPage: React.FC = () => {
           <label className="sm:col-span-2"><span className={labelClass}>Description</span><textarea rows={3} value={documentForm.description} onChange={(event) => setDocumentForm({ ...documentForm, description: event.target.value })} className={`${fieldClass} h-auto py-3`} /></label>
           <label className="sm:col-span-2"><span className={labelClass}>Fichier à publier</span><input required type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onChange={(event) => { const file = event.target.files?.[0] || null; setDocumentFile(file); if (file) { const extension = file.name.split('.').pop()?.toLowerCase(); setDocumentForm((current) => ({ ...current, fileType: extension === 'doc' ? 'docx' : extension === 'xls' ? 'xlsx' : extension === 'ppt' ? 'pptx' : (['pdf', 'docx', 'xlsx', 'pptx'].includes(extension || '') ? extension as InternalDocument['fileType'] : current.fileType) })); } }} className={`${fieldClass} py-2`} />{documentFile && <span className="mt-1 block text-[11px] text-emerald-700">{documentFile.name} · fichier prêt</span>}</label>
           <p className="sm:col-span-2 text-[11px] text-slate-400">Le fichier est conservé dans le stockage du navigateur sur cet appareil. Le stockage partagé sera raccordé au backend sécurisé.</p>
-          <button className="h-11 rounded-xl bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 sm:col-span-2">Ajouter aux documents</button>
+          <button disabled={isSavingDocument} className="h-11 rounded-xl bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-80 sm:col-span-2">{isSavingDocument ? <AdecInlineLoader message="Publication en cours…" /> : 'Ajouter aux documents'}</button>
         </form>
         <div className="mt-5 border-t border-slate-100 pt-4"><h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Documents publiés</h3>{workspace.documents.map((document) => <div key={document.id} className="flex items-center gap-2 border-b border-slate-100 py-2 last:border-0"><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-700">{document.title}</p><p className="text-[10px] text-slate-400">{document.category} · {document.fileType.toUpperCase()}</p></div><button type="button" onClick={() => confirmRemove(`« ${document.title} »`, () => { removeDocument(document.id); if (document.downloadUrl.startsWith('workspace-file://')) void deleteDocumentFile(document.downloadUrl.slice('workspace-file://'.length)); })} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Supprimer le document"><Trash2 className="h-3.5 w-3.5" /></button></div>)}</div>
       </Panel>}
