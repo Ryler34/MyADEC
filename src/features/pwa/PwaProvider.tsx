@@ -98,26 +98,42 @@ export const PwaProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     deferredPrompt.current = null;
     setInstalling(true);
+
+    // Some browsers leave prompt() or userChoice pending indefinitely. Keep
+    // the UI recoverable while waiting for appinstalled/display-mode instead.
+    if (installCheckTimer.current !== null) window.clearTimeout(installCheckTimer.current);
+    installCheckTimer.current = window.setTimeout(() => {
+      installCheckTimer.current = null;
+      setInstalling(false);
+      if (isRunningStandalone()) {
+        setInstalled(true);
+        saveStorageValue(INSTALLED_KEY, 'true');
+      } else {
+        setShowInstallHelp(true);
+      }
+    }, 12_000);
+
+    const failAttempt = () => {
+      if (installCheckTimer.current !== null) window.clearTimeout(installCheckTimer.current);
+      installCheckTimer.current = null;
+      setInstalling(false);
+      if (!isRunningStandalone()) setShowInstallHelp(true);
+    };
+
     try {
-      await promptEvent.prompt();
-      const choice = await promptEvent.userChoice;
-      if (choice.outcome === 'accepted') {
-        installCheckTimer.current = window.setTimeout(() => {
+      // Invoke prompt immediately in the click handler to preserve the
+      // browser's user-activation requirement. Do not await either promise.
+      void promptEvent.prompt().catch(failAttempt);
+      void promptEvent.userChoice.then((choice) => {
+        if (choice.outcome === 'dismissed') {
+          if (installCheckTimer.current !== null) window.clearTimeout(installCheckTimer.current);
           installCheckTimer.current = null;
           setInstalling(false);
-          if (isRunningStandalone()) {
-            setInstalled(true);
-            saveStorageValue(INSTALLED_KEY, 'true');
-          } else {
-            setShowInstallHelp(true);
-          }
-        }, 5000);
-      } else {
-        setInstalling(false);
-      }
+        }
+        // On acceptance, appinstalled or the bounded timer settles the UI.
+      }).catch(failAttempt);
     } catch {
-      setInstalling(false);
-      setShowInstallHelp(true);
+      failAttempt();
     }
   }, []);
 
