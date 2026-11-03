@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router-dom';
 import { AuthProvider } from '@/features/auth/AuthContext';
 import { SplashScreen } from '@/components/brand/SplashScreen';
 import { router } from './router';
+import { PwaProvider } from '@/features/pwa/PwaProvider';
 
 export const App: React.FC = () => {
   // Détecter si le Splash Screen a déjà été présenté durant cette session
@@ -19,8 +20,10 @@ export const App: React.FC = () => {
 
   return (
     <AuthProvider>
-      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
-      <RouterProvider router={router} />
+      <PwaProvider>
+        {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+        <RouterProvider router={router} />
+      </PwaProvider>
     </AuthProvider>
   );
 };

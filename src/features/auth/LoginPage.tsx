@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2, ArrowRight, X } from 'lucide-react';
 import { AdecLogo } from '@/components/brand/AdecLogo';
 import { AdecInlineLoader } from '@/components/brand/AdecLoader';
+import { InstallPwaButton } from '@/features/pwa/InstallPwaButton';
 import { useAuth } from './AuthContext';
 import { brandConfig } from '@/config/brand';
 
@@ -315,6 +316,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
             </div>
           </div>
         </motion.div>
+        <div className="flex justify-center">
+          <InstallPwaButton />
+        </div>
       </div>
 
       {/* PIED DE PAGE : ACCÈS RÉSERVÉ */}
