@@ -1,8 +1,9 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Bell, CheckCircle2, Download, RefreshCw, Share, X } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
-const INSTALLED_KEY = 'myadec_pwa_installed';
+// New key avoids stale "installed" flags written by versions that trusted the prompt choice alone.
+const INSTALLED_KEY = 'myadec_pwa_install_confirmed_v2';
 const NOTIFICATION_CHOICE_KEY = 'myadec_pwa_notification_choice';
 
 interface InstallPromptEvent extends Event {
@@ -12,6 +13,7 @@ interface InstallPromptEvent extends Event {
 
 interface PwaContextValue {
   installed: boolean;
+  installing: boolean;
   installApp: () => Promise<void>;
 }
 
@@ -37,13 +39,18 @@ const saveStorageValue = (key: string, value: string) => {
 
 export const PwaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const deferredPrompt = useRef<InstallPromptEvent | null>(null);
+  const installCheckTimer = useRef<number | null>(null);
   const [installed, setInstalled] = useState(() => isRunningStandalone() || readStoredFlag(INSTALLED_KEY));
+  const [installing, setInstalling] = useState(false);
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const markInstalled = () => {
+      if (installCheckTimer.current !== null) window.clearTimeout(installCheckTimer.current);
+      installCheckTimer.current = null;
+      setInstalling(false);
       setInstalled(true);
       saveStorageValue(INSTALLED_KEY, 'true');
       deferredPrompt.current = null;
@@ -51,21 +58,28 @@ export const PwaProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       deferredPrompt.current = event as InstallPromptEvent;
+      if (installCheckTimer.current !== null) window.clearTimeout(installCheckTimer.current);
+      installCheckTimer.current = null;
+      setInstalling(false);
       setInstalled(false);
       saveStorageValue(INSTALLED_KEY, 'false');
     };
     const handleAppInstalled = () => markInstalled();
     const displayMode = window.matchMedia('(display-mode: standalone)');
     const handleDisplayModeChange = () => { if (isRunningStandalone()) markInstalled(); };
+    const handleVisibilityChange = () => { if (document.visibilityState === 'visible' && isRunningStandalone()) markInstalled(); };
 
     if (isRunningStandalone()) markInstalled();
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
     window.addEventListener('appinstalled', handleAppInstalled);
     displayMode.addEventListener('change', handleDisplayModeChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
       window.removeEventListener('appinstalled', handleAppInstalled);
       displayMode.removeEventListener('change', handleDisplayModeChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (installCheckTimer.current !== null) window.clearTimeout(installCheckTimer.current);
     };
   }, []);
 
@@ -83,14 +97,26 @@ export const PwaProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     deferredPrompt.current = null;
+    setInstalling(true);
     try {
       await promptEvent.prompt();
       const choice = await promptEvent.userChoice;
       if (choice.outcome === 'accepted') {
-        setInstalled(true);
-        saveStorageValue(INSTALLED_KEY, 'true');
+        installCheckTimer.current = window.setTimeout(() => {
+          installCheckTimer.current = null;
+          setInstalling(false);
+          if (isRunningStandalone()) {
+            setInstalled(true);
+            saveStorageValue(INSTALLED_KEY, 'true');
+          } else {
+            setShowInstallHelp(true);
+          }
+        }, 5000);
+      } else {
+        setInstalling(false);
       }
     } catch {
+      setInstalling(false);
       setShowInstallHelp(true);
     }
   }, []);
@@ -128,7 +154,7 @@ export const PwaProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <PwaContext.Provider value={{ installed, installApp }}>
+    <PwaContext.Provider value={{ installed, installing, installApp }}>
       {children}
       {showInstallHelp && <InstallHelpDialog onClose={() => setShowInstallHelp(false)} />}
       {showNotificationPrompt && <NotificationDialog
